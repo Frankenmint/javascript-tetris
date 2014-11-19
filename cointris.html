@@ -80,9 +80,9 @@
         ctx     = canvas.getContext('2d'),
         ucanvas = get('upcoming'),
         uctx    = ucanvas.getContext('2d'),
-        speed   = { start: 0.6, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
+        speed   = { start: 0.7, decrement: 0.005, min: 0.1 }, // how long before piece drops by 1 row (seconds)
         nx      = 10, // width of tetris court (in blocks)
-        ny      = 20, // height of tetris court (in blocks)
+        ny      = 21, // height of tetris court (in blocks)
         nu      = 5;  // width/height of upcoming preview (in blocks)
 
     //-------------------------------------------------------------------------
@@ -99,8 +99,9 @@
         score,         // the current score
         vscore,        // the currently displayed score (it catches up to score in small chunks - like a spinning slot machine)
         rows,          // number of completed rows in the current game
-        step;          // how long before current piece drops by 1 row
-
+        step,          // how long before current piece drops by 1 row
+		gamePaused,
+		resume;
     //-------------------------------------------------------------------------
     // tetris pieces
     //
@@ -118,8 +119,8 @@
     //-------------------------------------------------------------------------
 
     var i = { size: 4, blocks: [0x0F00, 0x2222, 0x00F0, 0x4444], color: 'orange'   };
-    var j = { size: 3, blocks: [0x44C0, 0x8E00, 0x6440, 0x0E20], color: 'orange'   };
-    var l = { size: 3, blocks: [0x4460, 0x0E80, 0xC440, 0x2E00], color: 'orange' };
+    var j = { size: 3, blocks: [0x0E20, 0x44C0, 0x8E00, 0x6440], color: 'orange'   };
+    var l = { size: 3, blocks: [0x0E80, 0xC440, 0x2E00, 0x4460], color: 'orange' };
     var o = { size: 2, blocks: [0xCC00, 0xCC00, 0xCC00, 0xCC00], color: 'orange' };
     var s = { size: 3, blocks: [0x06C0, 0x8C40, 0x6C00, 0x4620], color: 'orange'  };
     var t = { size: 3, blocks: [0x0E40, 0x4C40, 0x4E00, 0x4640], color: 'orange' };
@@ -193,8 +194,7 @@
       resize(); // setup all our sizing information
       reset();  // reset the per-game variables
       frame();  // start the first frame
-
-    }
+	}
 
     function showStats() {
       stats.domElement.id = 'stats';
@@ -220,19 +220,39 @@
     function keydown(ev) {
       var handled = false;
       if (playing) {
+	  var pause ='';
         switch(ev.keyCode) {
           case KEY.LEFT:   actions.push(DIR.LEFT);  handled = true; break;
           case KEY.RIGHT:  actions.push(DIR.RIGHT); handled = true; break;
           case KEY.UP:     actions.push(DIR.UP);    handled = true; break;
           case KEY.DOWN:   actions.push(DIR.DOWN);  handled = true; break;
-          case KEY.ESC:    lose();                  handled = true; break;
-         
+          case KEY.ESC:    lose();      reset();    handled= true; break;
+	    }
+		
+	if (ev.keyCode == 17 && pause == false) {
+             gamePaused();
+			 pause = true;
+			
+
+			 } 
+			 
+
+      
+	 if (ev.keyCode == 17 && pause == true) {
+	       resume();
+		   pause = false;
+		   handled = true;
+		
+	        
+   
 		}
-      }
+	}
       else if (ev.keyCode == KEY.SPACE || ev.keyCode == 13) {
         play();
-        handled = true;
+		handled = true;
       }
+
+	  
       if (handled)
         ev.preventDefault(); // prevent arrow keys from scrolling the page (supported in IE9+ and all other browsers)
     }
@@ -241,8 +261,10 @@
     // GAME LOGIC
     //-------------------------------------------------------------------------
 
-    function play() { hide('start'); reset();          playing = true;  }
+    function play() { show('start'); reset();          playing = true;  }
     function lose() { show('start'); setVisualScore(); playing = false; }
+	function gamePaused() {                           playing = false; }
+	function resume() {                                playing = true;  }
 
     function setVisualScore(n)      { vscore = n || score; invalidateScore(); }
     function setScore(n)            { score = n; setVisualScore(n);  }
@@ -366,6 +388,8 @@
 	 var audioURL = document.getElementById('ding'); 
 	  audioURL.play();
     }
+
+
 // function addLine(n) { modifier for when  3 lines have been tallied against add line of random filled in blocks missing
    
     //-------------------------------------------------------------------------
@@ -382,7 +406,7 @@
     function draw() {
       ctx.save();
       ctx.lineWidth = 1;
-      ctx.translate(1, 1); // for crisp 1px black lines
+      ctx.translate(.5, .5); // for crisp 1px black lines
       drawCourt();
       drawNext();
       drawScore();
